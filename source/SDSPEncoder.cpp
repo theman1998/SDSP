@@ -1,84 +1,153 @@
 #include "SDSPEncoder.h"
 
+#define HEADER_SIZE 8
 
-SDSPEncoder::SDSPEncoder( const uint8_t * data, uint32_t size ) : messageP{ new uint8_t[size] }, messageSize{ size }
-{
-	if ( size > 0 )
-	{
-		copy( data, size, messageP );
-	}
-}
+const char headerValidation[] = { (char)0xA5, (char)0x5A, (char)0x69, (char)0x01 };
 
-SDSPEncoder::SDSPEncoder( const String message ) : messageP{ nullptr }, messageSize{ 0 }
+SDSPEncoder::SDSPEncoder() : encodedMessage{ nullptr }, messageSize{0} 
+{}
+
+void SDSPEncoder::initChunks()
 {
-	if( message.length() != 0 )
-	{
-		messageP = new uint8_t[ message.length() ];
-		messageSize = message.length();
-		uint8_t * p = ( uint8_t * ) message.c_str();
-		copy( p, messageSize, messageP );
-	}
+	ChunkTOLM.type = getTypeString(TOLM);
+	ChunkTORM.type = getTypeString(TORM);
+	ChunkBOLM.type = getTypeString(BOLM);
+	ChunkBORM.type = getTypeString(BORM);
 }
 
 SDSPEncoder::~SDSPEncoder()
 {
-	if( messageP != nullptr )
+	if( encodedMessage != nullptr )
 	{
-		delete [] messageP;
+		delete [] encodedMessage;
 	}
 }
 
-
-void SDSPEncoder::insertMessage( String message )
+void SDSPEncoder::packer()
 {
-	if( message.length() == 0 )
+	messageSize = HEADER_SIZE; // should be comment here
+
+	if ( ChunkTOLM.isUsed )
 	{
-		return;
+		messageSize += ChunkTOLM.length;
 	}
-	if( messageP != nullptr )
+	if ( ChunkTORM.isUsed )
 	{
-		delete [] messageP;
+		messageSize += ChunkTORM.length;
+	}
+	if ( ChunkBOLM.isUsed )
+	{
+		messageSize += ChunkBOLM.length;
+	}
+	if ( ChunkBORM.isUsed )
+	{
+		messageSize += ChunkBORM.length;
+	}
+	encodedMessage = new uint8_t[messageSize];
+
+
+	uint32_t byteCounter = HEADER_SIZE; 
+	if ( ChunkTOLM.isUsed )
+	{
+		byteCounter = packMotorChunk( encodedMessage + byteCounter, ChunkTOLM );
+	}
+	if ( ChunkTORM.isUsed )
+	{
+		byteCounter = packMotorChunk( encodedMessage + byteCounter, ChunkTORM );
+	}
+	if ( ChunkBOLM.isUsed )
+	{
+		byteCounter = packMotorChunk( encodedMessage + byteCounter, ChunkBOLM );
+	}
+	if ( ChunkBORM.isUsed )
+	{
+		byteCounter = packMotorChunk( encodedMessage + byteCounter, ChunkBORM );
 	}
 
-	messageP = new uint8_t[ message.length() ];
-	messageSize = message.length();
-	uint8_t * p = ( uint8_t * ) message.c_str();
-	copy( p, messageSize, messageP );
 }
 
-void SDSPEncoder::insertMessage( uint8_t * data, uint32_t size )
+uint32_t SDSPEncoder::packHeader( uint8_t * buffer, uint32_t size )
 {
-	if( size == 0 )
+	uint32_t byte = 0;
+	for( byte; byte < 4; byte++ )
 	{
-		return;
+		buffer[ byte ] = headerValidation[ byte ];
 	}
-	if( messageP != nullptr )
+	for ( int i = byte; i < byte + 4; i++ )
 	{
-		delete [] messageP;
+		int ref = i - byte;
+		// length is 4 bytes, but our buffer only takes 1 byte
+		// this requires us to mask each byte and shift it to the least sigfig
+		buffer[i] = ( size & (0xFF << (8 * ( 4 - ref))) ) >> (8 * ( 4 - ref));
 	}
-	messageP = new uint8_t[size];
-	copy( data, size, messageP );
+	byte += 4;
+
+
+	return byte;
+}
+
+uint32_t SDSPEncoder::packMotorChunk( uint8_t * buffer, const SDSPEncoder::ChunkMotorControl & chunk )
+{
+	int byte = 0;
+	//length
+	for ( byte; byte < 4; byte++ )
+	{
+		// length is 4 bytes, but our buffer only takes 1 byte
+		// this requires us to mask each byte and shift it to the least sigfig
+		buffer[byte] = ( chunk.length & (0xFF << (8 * ( 4 - byte))) ) >> (8 * ( 4 - byte));
+	}
+
+	for ( int i = byte; i < byte+4; i++ )
+	{
+		buffer[ i ] = ( uint8_t ) chunk.type[ i - byte ];
+	}
+	byte += 4;
+
+	buffer[byte++] = ( chunk.speed & 0xFF00 ) >> (8);
+	buffer[byte++] = ( chunk.speed & 0xFF );
+
+	return byte;
 }
 
 
-
-
-
-
-
-
-// ------------------- can't use the standard library functions -----------------------------
-void copy( const char * in, uint32_t size, char * out)
+void SDSPEncoder::insertMotorControl( uint16_t speed, SDSPEncoder::Types type )
 {
-	for ( uint32_t i = 0; i < size; i++ )
+	switch( type )
 	{
-		out[i] = in[i];
+		case TOLM:
+			ChunkTOLM.speed = speed;
+			ChunkTOLM.isUsed = true;
+			break;
+		case TORM:
+			ChunkTORM.speed = speed;
+			ChunkTORM.isUsed = true;
+			break;
+		case BOLM:
+			ChunkBOLM.speed = speed;
+			ChunkBOLM.isUsed = true;
+			break;
+		case BORM:
+			ChunkBORM.speed = speed;
+			ChunkBORM.isUsed = true;
+			break;
 	}
 }
-void copy( const uint8_t * in, uint32_t size, uint8_t * out)
+
+String SDSPEncoder::getTypeString( SDSPEncoder::Types type ) const
 {
-	for ( uint32_t i = 0; i < size; i++ )
+	switch( type )
 	{
-		out[i] = in[i];
+		case TOLM: return "TOLM";
+		case TORM: return "TORM";
+		case BOLM: return "BOLM";
+		case BORM: return "BORM";
 	}
+	return "";
+}
+
+
+String SDSPEncoder::getPackMessage()
+{
+	String res( ( char * ) encodedMessage );	
+	return res;
 }

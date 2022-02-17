@@ -7,44 +7,74 @@
 #include <SoftwareSerial.h>
 #include <Arduino.h>
 #include <String.h>
+#include "Utility.h"
 
 /**
  * Simple Drone Serial Protocol Encoder will encode and decode messages. 
  */
 class SDSPEncoder
 {
-
 public:
-	SDSPEncoder( const uint8_t * data = nullptr, uint32_t size = 0, bool encodedMessage );
-	SDSPEncoder( const String message );
-	~SDSPEncoder();
-
-	void insertMessage( String message );
-	void insertMessage( uint8_t * data, uint32_t size );
-
-
+	struct Chunk
+	{
+		uint32_t length		{0};
+		String type			{""};
+		uint8_t * data 		{nullptr};
+	};	
+	enum Types
+	{
+		TOLM,
+		TORM,
+		BOLM,
+		BORM
+	};
+	struct ChunkMotorControl
+	{
+		const uint32_t length	{10}; // This will always be 10 with current structure. 4 + 4 + 2
+		String type				{""};
+		uint16_t speed			{0}; // speed that the ESC will operate at. Motor will start at speed 1150, and can go above 2k
+		bool isUsed				{false};
+	};
 
 	struct Header
 	{
 		bool valid			{false};
 		uint32_t length		{0};
 	};
-	struct Chunk
-	{
-		uint32_t length		{0};
-		String type			{""};
-		uint8_t * data 		{nullptr};
-	};
+
+
+	SDSPEncoder();
+	~SDSPEncoder();
+
+	void initChunks();
+
+	void insertMotorControl( uint16_t speed, SDSPEncoder::Types type );
+
+	void packer();
+
+	String getPackMessage();
+
+
+	uint32_t packHeader( uint8_t * buffer, uint32_t size );
+	uint32_t packMotorChunk( uint8_t * buffer, const SDSPEncoder::ChunkMotorControl & chunk );
+
+
+	String getTypeString( SDSPEncoder::Types type ) const;
+
+
+
 
 
 
 private:
-	uint8_t * messageP;
+	uint8_t * encodedMessage;
 	uint32_t messageSize;
+
+	ChunkMotorControl ChunkTOLM;
+	ChunkMotorControl ChunkTORM;
+	ChunkMotorControl ChunkBOLM;
+	ChunkMotorControl ChunkBORM;
+
 };
-
-void copy( const char * in, uint32_t size, char * out);
-void copy( const uint8_t * in, uint32_t size, uint8_t * out);
-
 
 #endif // _SDSPENCODER_H_

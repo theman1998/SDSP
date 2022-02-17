@@ -25,11 +25,11 @@ Chunks will be broken down into chunks. Each chunk will be represted as the foll
 The header **Validation** will consist of a 4 byte sequence with the following order **0XA5'5A'69'01**. Any message not containing this header will get droped. 
 
 Chunk types should be case sensitive and should be represtened as chars following ASCii format. The following are defined types that being used in operations.
-| TYPE | Meaning            |
-|------|--------------------|
-| TOLM | Top Left Motor     |
-| TORM | Top Right Motor    |
-| BOLM | Bottom Left Motor  |
-| BORM | Bottom Right Moto  | 
+| TYPE | Meaning            |            use               |
+|------|--------------------|------------------------------|
+| TOLM | Top Left Motor     | First 2 bytes are hz for ESC |
+| TORM | Top Right Motor    | First 2 bytes are hz for ESC |
+| BOLM | Bottom Left Motor  | First 2 bytes are hz for ESC |
+| BORM | Bottom Right Moto  | First 2 bytes are hz for ESC |
 
 As mentioned before, chunks can be added into the protocol. This keeps the protocol small, simple, yet allows for future development. Also notice that there is no bit error correction, check sum, or redundancy check. This addition adds quit a hefty overhead, which this current project is trying to avoid. It also adds complications which out of the scope of this project. 
