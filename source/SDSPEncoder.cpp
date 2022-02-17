@@ -5,18 +5,18 @@ SDSPEncoder::SDSPEncoder( const uint8_t * data, uint32_t size ) : messageP{ new 
 {
 	if ( size > 0 )
 	{
-		std::copy( data, data + size, messageP );
+		copy( data, size, messageP );
 	}
 }
 
-SDSPEncoder::SDSPEncoder( const std::string message ) : messageP{ nullptr }, messageSize{ 0 }
+SDSPEncoder::SDSPEncoder( const String message ) : messageP{ nullptr }, messageSize{ 0 }
 {
-	if( message.size() != 0 )
+	if( message.length() != 0 )
 	{
-		messageP = new char[ message.size() ];
-		messageSize = message.size();
+		messageP = new uint8_t[ message.length() ];
+		messageSize = message.length();
 		uint8_t * p = ( uint8_t * ) message.c_str();
-		std::copy( p, p + messageSize, messageP );
+		copy( p, messageSize, messageP );
 	}
 }
 
@@ -29,9 +29,9 @@ SDSPEncoder::~SDSPEncoder()
 }
 
 
-void SDSPEncoder::insertMessage( std::string message )
+void SDSPEncoder::insertMessage( String message )
 {
-	if( message.size() == 0 )
+	if( message.length() == 0 )
 	{
 		return;
 	}
@@ -40,15 +40,15 @@ void SDSPEncoder::insertMessage( std::string message )
 		delete [] messageP;
 	}
 
-	messageP = new char[ message.size() ];
-	messageSize = message.size();
+	messageP = new uint8_t[ message.length() ];
+	messageSize = message.length();
 	uint8_t * p = ( uint8_t * ) message.c_str();
-	std::copy( p, p + messageSize, messageP );
+	copy( p, messageSize, messageP );
 }
 
 void SDSPEncoder::insertMessage( uint8_t * data, uint32_t size )
 {
-	if( message.size() == 0 )
+	if( size == 0 )
 	{
 		return;
 	}
@@ -57,5 +57,28 @@ void SDSPEncoder::insertMessage( uint8_t * data, uint32_t size )
 		delete [] messageP;
 	}
 	messageP = new uint8_t[size];
-	std::copy( data, data + size, messageP );
+	copy( data, size, messageP );
+}
+
+
+
+
+
+
+
+
+// ------------------- can't use the standard library functions -----------------------------
+void copy( const char * in, uint32_t size, char * out)
+{
+	for ( uint32_t i = 0; i < size; i++ )
+	{
+		out[i] = in[i];
+	}
+}
+void copy( const uint8_t * in, uint32_t size, uint8_t * out)
+{
+	for ( uint32_t i = 0; i < size; i++ )
+	{
+		out[i] = in[i];
+	}
 }
