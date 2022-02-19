@@ -8,6 +8,7 @@
 #include <Arduino.h>
 #include <String.h>
 #include "Utility.h"
+#include "SDSP.h"
 
 /**
  * Simple Drone Serial Protocol Decoder will decode messages. 
@@ -23,34 +24,15 @@ public:
 	void insertMessage( String message );
 	void insertMessage( uint8_t * data, uint32_t size );
 
-	void packer();
-
-	enum Types
-	{
-		TOLM,
-		TORM,
-		BOLM,
-		BORM
-	};
-	String getTypeString( SDSPDecoder::Types type ) const;
-
-	struct Header
-	{
-		bool valid			{false};
-		uint32_t length		{0};
-	};
-	struct Chunk
-	{
-		uint32_t length		{0};
-		String type			{""};
-		uint8_t * data 		{nullptr};
-	};
-
+	void parse();
+	bool checkHeader( const uint8_t * data = nullptr );
 
 
 private:
 	uint8_t * messageP;
 	uint32_t messageSize;
+
+	SDSP::Tangibles container;
 
 };
 

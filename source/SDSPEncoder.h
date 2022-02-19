@@ -8,6 +8,7 @@
 #include <Arduino.h>
 #include <String.h>
 #include "Utility.h"
+#include "SDSP.h"
 
 /**
  * Simple Drone Serial Protocol Encoder will encode and decode messages. 
@@ -15,40 +16,12 @@
 class SDSPEncoder
 {
 public:
-	struct Chunk
-	{
-		uint32_t length		{0};
-		String type			{""};
-		uint8_t * data 		{nullptr};
-	};	
-	enum Types
-	{
-		TOLM,
-		TORM,
-		BOLM,
-		BORM
-	};
-	struct ChunkMotorControl
-	{
-		const uint32_t length	{10}; // This will always be 10 with current structure. 4 + 4 + 2
-		String type				{""};
-		uint16_t speed			{0}; // speed that the ESC will operate at. Motor will start at speed 1150, and can go above 2k
-		bool isUsed				{false};
-	};
-
-	struct Header
-	{
-		bool valid			{false};
-		uint32_t length		{0};
-	};
-
-
 	SDSPEncoder();
 	~SDSPEncoder();
 
 	void initChunks();
 
-	void insertMotorControl( uint16_t speed, SDSPEncoder::Types type );
+	void insertMotorControl( uint16_t speed, SDSP::Types type );
 
 	void packer();
 
@@ -56,24 +29,15 @@ public:
 
 
 	uint32_t packHeader( uint8_t * buffer, uint32_t size );
-	uint32_t packMotorChunk( uint8_t * buffer, const SDSPEncoder::ChunkMotorControl & chunk );
-
-
-	String getTypeString( SDSPEncoder::Types type ) const;
-
-
-
-
+	uint32_t packMotorChunk( uint8_t * buffer, const SDSP::ChunkMotorControl & chunk );
 
 
 private:
 	uint8_t * encodedMessage;
 	uint32_t messageSize;
 
-	ChunkMotorControl ChunkTOLM;
-	ChunkMotorControl ChunkTORM;
-	ChunkMotorControl ChunkBOLM;
-	ChunkMotorControl ChunkBORM;
+	SDSP::Tangibles container;
+
 
 };
 

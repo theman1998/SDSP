@@ -60,14 +60,44 @@ void SDSPDecoder::insertMessage( uint8_t * data, uint32_t size )
 	copy( data, size, messageP );
 }
 
-String SDSPDecoder::getTypeString( SDSPDecoder::Types type ) const
+void SDSPDecoder::parse()
 {
-	switch( type )
+	bool thisProtocol = checkHeader();
+	if ( ! thisProtocol )
 	{
-		case TOLM: return "TOLM";
-		case TORM: return "TORM";
-		case BOLM: return "BOLM";
-		case BORM: return "BORM";
+		Serial.println( "not the write protocol" );
+		return;
 	}
-	return "";
+}
+
+
+bool SDSPDecoder::checkHeader( const uint8_t * data )
+{
+	uint8_t * headerP  = ( uint8_t * ) data;
+	if( data == nullptr )
+	{
+		headerP = messageP;
+	}
+
+	uint32_t byte = 0;
+
+	for( byte; byte < sizeof( SDSP::headerValidation ); byte++ )
+	{
+		if( headerP[ byte ] != SDSP::headerValidation[ byte ] )
+		{
+			container.header.valid = false;
+			return false;
+		}
+	}
+
+	union SDSP::ByteUnion bUnion;
+
+	for ( int i = 0; i < MESSAGE_LENGTH; i++ )
+	{
+		bUnion.b1[ 3 - i ] = headerP[ byte++ ];
+	}
+
+	container.header.length = bUnion.b4[1];
+	Serial.println( container.header.length );
+	return true;
 }

@@ -1,18 +1,14 @@
 #include "SDSPEncoder.h"
 
-#define HEADER_SIZE 8
-
-const char headerValidation[] = { (char)0xA5, (char)0x5A, (char)0x69, (char)0x01 };
-
 SDSPEncoder::SDSPEncoder() : encodedMessage{ nullptr }, messageSize{0} 
 {}
 
 void SDSPEncoder::initChunks()
 {
-	ChunkTOLM.type = getTypeString(TOLM);
-	ChunkTORM.type = getTypeString(TORM);
-	ChunkBOLM.type = getTypeString(BOLM);
-	ChunkBORM.type = getTypeString(BORM);
+	container.chunkTOLM.type = SDSP::getTypeString(SDSP::TOLM);
+	container.chunkTORM.type = SDSP::getTypeString(SDSP::TORM);
+	container.chunkBOLM.type = SDSP::getTypeString(SDSP::BOLM);
+	container.chunkBORM.type = SDSP::getTypeString(SDSP::BORM);
 }
 
 SDSPEncoder::~SDSPEncoder()
@@ -27,41 +23,41 @@ void SDSPEncoder::packer()
 {
 	messageSize = HEADER_SIZE; // should be comment here
 
-	if ( ChunkTOLM.isUsed )
+	if ( container.chunkTOLM.isUsed )
 	{
-		messageSize += ChunkTOLM.length;
+		messageSize += container.chunkTOLM.length;
 	}
-	if ( ChunkTORM.isUsed )
+	if ( container.chunkTORM.isUsed )
 	{
-		messageSize += ChunkTORM.length;
+		messageSize += container.chunkTORM.length;
 	}
-	if ( ChunkBOLM.isUsed )
+	if ( container.chunkBOLM.isUsed )
 	{
-		messageSize += ChunkBOLM.length;
+		messageSize += container.chunkBOLM.length;
 	}
-	if ( ChunkBORM.isUsed )
+	if ( container.chunkBORM.isUsed )
 	{
-		messageSize += ChunkBORM.length;
+		messageSize += container.chunkBORM.length;
 	}
 	encodedMessage = new uint8_t[messageSize];
 
 
 	uint32_t byteCounter = HEADER_SIZE; 
-	if ( ChunkTOLM.isUsed )
+	if ( container.chunkTOLM.isUsed )
 	{
-		byteCounter = packMotorChunk( encodedMessage + byteCounter, ChunkTOLM );
+		byteCounter = packMotorChunk( encodedMessage + byteCounter, container.chunkTOLM );
 	}
-	if ( ChunkTORM.isUsed )
+	if ( container.chunkTORM.isUsed )
 	{
-		byteCounter = packMotorChunk( encodedMessage + byteCounter, ChunkTORM );
+		byteCounter = packMotorChunk( encodedMessage + byteCounter, container.chunkTORM );
 	}
-	if ( ChunkBOLM.isUsed )
+	if ( container.chunkBOLM.isUsed )
 	{
-		byteCounter = packMotorChunk( encodedMessage + byteCounter, ChunkBOLM );
+		byteCounter = packMotorChunk( encodedMessage + byteCounter, container.chunkBOLM );
 	}
-	if ( ChunkBORM.isUsed )
+	if ( container.chunkBORM.isUsed )
 	{
-		byteCounter = packMotorChunk( encodedMessage + byteCounter, ChunkBORM );
+		byteCounter = packMotorChunk( encodedMessage + byteCounter, container.chunkBORM );
 	}
 
 }
@@ -71,7 +67,7 @@ uint32_t SDSPEncoder::packHeader( uint8_t * buffer, uint32_t size )
 	uint32_t byte = 0;
 	for( byte; byte < 4; byte++ )
 	{
-		buffer[ byte ] = headerValidation[ byte ];
+		buffer[ byte ] = SDSP::headerValidation[ byte ];
 	}
 	for ( int i = byte; i < byte + 4; i++ )
 	{
@@ -82,11 +78,10 @@ uint32_t SDSPEncoder::packHeader( uint8_t * buffer, uint32_t size )
 	}
 	byte += 4;
 
-
 	return byte;
 }
 
-uint32_t SDSPEncoder::packMotorChunk( uint8_t * buffer, const SDSPEncoder::ChunkMotorControl & chunk )
+uint32_t SDSPEncoder::packMotorChunk( uint8_t * buffer, const SDSP::ChunkMotorControl & chunk )
 {
 	int byte = 0;
 	//length
@@ -94,8 +89,9 @@ uint32_t SDSPEncoder::packMotorChunk( uint8_t * buffer, const SDSPEncoder::Chunk
 	{
 		// length is 4 bytes, but our buffer only takes 1 byte
 		// this requires us to mask each byte and shift it to the least sigfig
-		buffer[byte] = ( chunk.length & (0xFF << (8 * ( 4 - byte))) ) >> (8 * ( 4 - byte));
+		buffer[byte] = ( chunk.length & (0xFF << (8 * ( 3 - byte))) ) >> (8 * ( 3 - byte));
 	}
+
 
 	for ( int i = byte; i < byte+4; i++ )
 	{
@@ -110,41 +106,28 @@ uint32_t SDSPEncoder::packMotorChunk( uint8_t * buffer, const SDSPEncoder::Chunk
 }
 
 
-void SDSPEncoder::insertMotorControl( uint16_t speed, SDSPEncoder::Types type )
+void SDSPEncoder::insertMotorControl( uint16_t speed, SDSP::Types type )
 {
 	switch( type )
 	{
-		case TOLM:
-			ChunkTOLM.speed = speed;
-			ChunkTOLM.isUsed = true;
+		case SDSP::TOLM:
+			container.chunkTOLM.speed = speed;
+			container.chunkTOLM.isUsed = true;
 			break;
-		case TORM:
-			ChunkTORM.speed = speed;
-			ChunkTORM.isUsed = true;
+		case SDSP::TORM:
+			container.chunkTORM.speed = speed;
+			container.chunkTORM.isUsed = true;
 			break;
-		case BOLM:
-			ChunkBOLM.speed = speed;
-			ChunkBOLM.isUsed = true;
+		case SDSP::BOLM:
+			container.chunkBOLM.speed = speed;
+			container.chunkBOLM.isUsed = true;
 			break;
-		case BORM:
-			ChunkBORM.speed = speed;
-			ChunkBORM.isUsed = true;
+		case SDSP::BORM:
+			container.chunkBORM.speed = speed;
+			container.chunkBORM.isUsed = true;
 			break;
 	}
 }
-
-String SDSPEncoder::getTypeString( SDSPEncoder::Types type ) const
-{
-	switch( type )
-	{
-		case TOLM: return "TOLM";
-		case TORM: return "TORM";
-		case BOLM: return "BOLM";
-		case BORM: return "BORM";
-	}
-	return "";
-}
-
 
 String SDSPEncoder::getPackMessage()
 {
