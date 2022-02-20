@@ -1,3 +1,8 @@
+/**
+ * Copyright (C) 2022-2022 theman1998 bigmaceater589@gmail.com
+ * This file belongs to the Simple Drone Serial Protocol
+ */
+
 #ifndef _SDSPDECODER_H_
 #define _SDSPDECODER_H_
 
@@ -25,14 +30,17 @@ public:
 	void insertMessage( uint8_t * data, uint32_t size );
 
 	void parse();
-	bool checkHeader( const uint8_t * data = nullptr );
-
+	bool parseHeader( const uint8_t * data = nullptr );
+	
 
 private:
 	uint8_t * messageP;
 	uint32_t messageSize;
 
 	SDSP::Tangibles container;
+	
+	uint32_t parseChunks( const uint8_t * data );
+	uint32_t parseChunkMotor( const uint8_t * data, SDSP::ChunkMotorControl & chunk );
 
 };
 

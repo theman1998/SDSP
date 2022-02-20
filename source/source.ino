@@ -16,10 +16,25 @@ void loop()
 {
 	encoder.insertMotorControl( 100, SDSP::TOLM );
 	encoder.packer();
-	String encodedMessage = encoder.getPackMessage();
+	uint8_t * encodedMessage = nullptr;
+	uint32_t encodedSize = encoder.getPackSize();
+	encodedMessage = new uint8_t[encodedSize];
+	encoder.getPackMessage( encodedMessage );
 
-	decoder.insertMessage( encodedMessage );
+	
+	Serial.print( encodedSize );
+	Serial.print( " string[0-7]: ");
+	for( int i = 0; i < encodedSize; i++ )
+	{
+	Serial.print( (uint8_t)encodedMessage[i], HEX );
+	Serial.print( " " );
+	}
+	Serial.println( " " );
+	
+
+	decoder.insertMessage( encodedMessage, encodedSize );
 	decoder.parse();
 
-	delay( 3000 );
+	delete [] encodedMessage;
+	delay( 2000 );
 }
